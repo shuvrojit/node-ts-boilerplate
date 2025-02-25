@@ -8,6 +8,14 @@ jest.mock('morgan', () => {
   return jest.fn().mockReturnValue((_req: any, _res: any, next: any) => next());
 });
 
+// Mock logger
+jest.mock('../../../src/config/logger', () => ({
+  info: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+  debug: jest.fn(),
+}));
+
 describe('Morgan Middleware Configuration', () => {
   const originalEnv = process.env.NODE_ENV;
 
@@ -60,15 +68,17 @@ describe('Morgan Middleware Configuration', () => {
   });
 
   it('should pipe logs to winston logger', () => {
-    const logSpy = jest.spyOn(logger, 'info');
     jest.isolateModules(() => {
       require('../../../src/config/morgan');
       const options = (morgan as unknown as jest.Mock).mock
         .calls[0][1] as Options<Request, Response>;
+
+      expect(options.stream).toBeDefined();
+
       const testMessage = 'Test log message';
       options.stream!.write(testMessage + '\n');
 
-      expect(logSpy).toHaveBeenCalledWith(testMessage);
+      expect(logger.info).toHaveBeenCalledWith(testMessage);
     });
   });
 });

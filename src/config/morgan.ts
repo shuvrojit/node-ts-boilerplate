@@ -1,12 +1,11 @@
 import morgan, { StreamOptions } from 'morgan';
-
 import logger from './logger';
 
 // Define a stream to use with Morgan that pipes logs to Winston
 const stream: StreamOptions = {
-  write: (message: string): boolean => {
+  write: (message: string): void => {
     logger.info(message.trim());
-    return true;
+    return;
   },
 };
 
