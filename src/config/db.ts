@@ -1,9 +1,8 @@
 import mongoose from 'mongoose';
 
-const DB_URL: string = process.env.mongoURL!;
+const DB_URL: string = process.env.MONGODB_URL!;
 
 const connectDB = async () => {
-  console.log(DB_URL);
   try {
     await mongoose.connect(DB_URL, { dbName: 'simple-auth' });
     process.stdout.write('Database connected\n');
