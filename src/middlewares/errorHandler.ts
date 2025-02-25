@@ -22,7 +22,7 @@ const sendErrorProd = (err: ApiError, res: Response) => {
   } else {
     // Programming or other unknown error: don't leak error details
     logger.error('ERROR 💥', err);
-    res.status(500).json({
+    res.status(err.statusCode).json({
       status: 'error',
       message: 'Something went very wrong!',
     });
@@ -31,8 +31,8 @@ const sendErrorProd = (err: ApiError, res: Response) => {
 
 const errorConverter = (
   err: any,
-  req: Request,
-  res: Response,
+  _req: Request,
+  _res: Response,
   next: NextFunction
 ) => {
   let error = err;
@@ -46,9 +46,9 @@ const errorConverter = (
 
 const errorHandler = (
   err: ApiError,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) => {
   err.statusCode = err.statusCode || 500;
 
