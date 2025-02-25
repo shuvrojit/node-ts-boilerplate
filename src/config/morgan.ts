@@ -4,7 +4,10 @@ import logger from './logger';
 
 // Define a stream to use with Morgan that pipes logs to Winston
 const stream: StreamOptions = {
-  write: (message: string) => logger.info(message.trim()),
+  write: (message: string): boolean => {
+    logger.info(message.trim());
+    return true;
+  },
 };
 
 // Skip logging if the environment is 'test'
