@@ -1,6 +1,6 @@
 # Node.js TypeScript Boilerplate
 
-A production-ready Node.js boilerplate with TypeScript, Express, MongoDB, and comprehensive testing setup.
+A production-ready Node.js boilerplate with TypeScript, Express, MongoDB, and comprehensive testing setup using Test-Driven Development (TDD) approach.
 
 ## Tech Stack
 
@@ -20,21 +20,96 @@ A production-ready Node.js boilerplate with TypeScript, Express, MongoDB, and co
 .
 ├── src/
 │   ├── config/           # Configuration files
+│   │   ├── config.ts    # Environment configuration
 │   │   ├── db.ts        # Database connection
 │   │   ├── logger.ts    # Winston logger setup
 │   │   └── morgan.ts    # HTTP request logging
-│   ├── app.ts           # Express app setup
-│   └── index.ts         # Application entry point
+│   ├── controllers/     # Route controllers
+│   ├── middlewares/     # Express middlewares
+│   │   ├── asyncHandler.ts    # Async error wrapper
+│   │   └── errorHandler.ts    # Global error handler
+│   ├── models/         # Mongoose models
+│   ├── routes/         # API routes
+│   │   └── v1/        # API v1 routes
+│   ├── services/       # Business logic
+│   ├── types/         # TypeScript type definitions
+│   ├── utils/         # Utility functions
+│   │   └── ApiError.ts # Custom error class
+│   ├── app.ts         # Express app setup
+│   └── index.ts       # Application entry point
 ├── tests/
-│   ├── integration/     # Integration tests
-│   └── unit/           # Unit tests
-├── logs/               # Application logs
+│   ├── integration/   # Integration tests
+│   │   └── app.test.ts
+│   └── unit/         # Unit tests
+│       ├── config/   # Configuration tests
+│       ├── middlewares/
+│       └── utils/    # Utility function tests
+├── logs/            # Application logs
 ├── docker-compose.yml  # Base Docker composition
 ├── docker-compose.dev.yml
 ├── docker-compose.prod.yml
 ├── docker-compose.test.yml
 └── ecosystem.config.json # PM2 configuration
 ```
+
+## Test-Driven Development (TDD)
+
+This project follows TDD principles:
+
+1. **Write failing tests first:** Create test cases before implementing features
+2. **Write minimal code to pass:** Implement just enough code to make tests pass
+3. **Refactor:** Improve code quality while maintaining test coverage
+
+### Testing Architecture
+
+- **Unit Tests:** Test individual components in isolation
+  - Config module tests
+  - Middleware tests
+  - Utility function tests
+- **Integration Tests:** Test component interactions
+  - API endpoint tests
+  - Database operations
+  - Middleware chain tests
+
+### Test Categories
+
+1. **Config Tests**
+
+   - Environment variable handling
+   - Database configuration
+   - Logger setup
+   - Morgan configuration
+
+2. **Middleware Tests**
+
+   - Error handling
+   - Async operation handling
+   - Request processing
+
+3. **Utility Tests**
+   - Custom error handling
+   - Helper functions
+
+## Error Handling
+
+The project implements a robust error handling system:
+
+1. **Custom Error Class (ApiError)**
+
+   - Status code management
+   - Error classification
+   - Stack trace preservation
+
+2. **Global Error Handler**
+
+   - Centralized error processing
+   - Environment-based error responses
+   - Error logging integration
+
+3. **Async Handler**
+   - Promise rejection catching
+   - Express middleware integration
+   - Route handler wrapping
 
 ## Features
 
@@ -51,13 +126,6 @@ A production-ready Node.js boilerplate with TypeScript, Express, MongoDB, and co
 - MongoDB integration with Mongoose
 - Containerized database with Docker
 - Environment-based configuration
-
-### Testing
-
-- Comprehensive test setup with Jest
-- Unit tests and Integration tests separation
-- Test coverage reporting
-- Docker-based test environment
 
 ### Development Tools
 
@@ -139,6 +207,12 @@ Generate coverage report:
 
 ```bash
 yarn coverage
+```
+
+Watch mode for TDD:
+
+```bash
+yarn test:watch
 ```
 
 ## License
