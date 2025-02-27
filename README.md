@@ -158,11 +158,53 @@ The project implements a robust error handling system:
 
 ## Environment Variables
 
+## Input Validation & Sanitization
+
+### Environment Variables
+
+Environment variables are validated and sanitized using Zod schemas. This ensures type safety and proper validation at runtime.
+
+```typescript
+// Example environment validation
+const env = validateEnv();
+console.log(env.NODE_ENV); // typed as 'development' | 'production' | 'test'
+console.log(env.PORT); // typed as number
+```
+
 Required environment variables:
 
-- `NODE_ENV`: Application environment (development/production)
-- `MONGODB_URL`: MongoDB connection URL
-- `PORT`: Application port (default: 8000)
+- `NODE_ENV`: Application environment (development/production/test, defaults to 'development')
+- `MONGODB_URL`: MongoDB connection URL (required, must be valid URL)
+- `PORT`: Application port (defaults to 3000, must be positive number)
+
+### Request Validation
+
+The application includes a robust request validation middleware using Zod:
+
+```typescript
+// Example route with validation
+app.post(
+  '/users',
+  validate({
+    body: z.object({
+      name: z.string().min(3),
+      email: z.string().email(),
+      age: z.number().positive(),
+    }),
+    query: z.object({
+      fields: z.string().optional(),
+    }),
+  }),
+  userController.createUser
+);
+```
+
+Features:
+
+- Validate request body, query parameters, and URL parameters
+- Type-safe validation with TypeScript integration
+- Detailed error messages
+- Automatic request data parsing and transformation
 
 ## Getting Started
 
