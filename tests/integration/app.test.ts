@@ -1,3 +1,6 @@
+// Mock the config module before other imports
+jest.mock('../../src/config/config');
+
 import request from 'supertest';
 import app from '../../src/app';
 import ApiError from '../../src/utils/ApiError';

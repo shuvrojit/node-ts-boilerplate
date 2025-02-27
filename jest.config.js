@@ -5,5 +5,11 @@ module.exports = {
     '^.+.tsx?$': ['ts-jest', {}],
   },
   coverageReporters: ['text', 'lcov', 'clover', 'html'],
-  testMatch: ['**/tests/**/*.ts'],
+  testMatch: ['**/tests/**/*.test.ts'],
+  setupFiles: ['<rootDir>/tests/testEnv.ts'],
+  // Add the testPathIgnorePatterns to explicitly ignore testEnv.ts
+  testPathIgnorePatterns: [
+    '<rootDir>/node_modules/',
+    '<rootDir>/tests/testEnv.ts',
+  ],
 };

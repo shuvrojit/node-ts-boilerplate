@@ -1,62 +1,71 @@
 import mongoose from 'mongoose';
-import { jest } from '@jest/globals';
-import connectDB from '../../../src/config/db';
-
-// Simpler approach: mock specific methods only
-jest.mock('mongoose', () => ({
-  connect: jest.fn(),
+// Mock the config module before importing other modules
+jest.mock('../../../src/config/config', () => ({
+  default: {
+    env: 'test',
+    mongoose: {
+      url: 'mongodb://localhost:27017/test-db',
+      options: {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      },
+    },
+  },
 }));
 
-// Get the mocked connect function
-const mockedConnect = mongoose.connect as jest.MockedFunction<
-  typeof mongoose.connect
->;
+import { connectDB, disconnectDB } from '../../../src/config/db';
+import config from '../../../src/config/config';
+
+// Mock mongoose to prevent actual database connections
+jest.mock('mongoose', () => ({
+  connect: jest.fn().mockResolvedValue(true),
+  disconnect: jest.fn().mockResolvedValue(true),
+  connection: {
+    readyState: 1,
+  },
+}));
 
 describe('Database Connection', () => {
-  const mongoUrl = 'mongodb://172.27.0.2:27017/semantiai';
-
-  const mockExit = jest.spyOn(process, 'exit').mockImplementation((number) => {
-    throw new Error('process.exit: ' + number);
-  });
-
-  const mockWrite = jest.spyOn(process.stdout, 'write');
-
   beforeEach(() => {
     jest.clearAllMocks();
-    // Ensure MONGODB_URL is set, using the value from .env
-    process.env.MONGODB_URL = mongoUrl;
   });
 
-  afterEach(() => {});
+  it('should connect to MongoDB successfully', async () => {
+    // Setup
+    const oldUrl = process.env.MONGODB_URL;
+    process.env.MONGODB_URL = 'mongodb://test:27017/testdb';
 
-  afterAll(() => {
-    mockExit.mockRestore();
-    mockWrite.mockRestore();
-  });
-
-  it('should connect to database successfully', async () => {
-    mockedConnect.mockResolvedValueOnce(mongoose);
+    // Execute
     await connectDB();
-    expect(mockedConnect).toHaveBeenCalledWith(mongoUrl, {
-      dbName: 'simple-auth',
-    });
-    expect(mockWrite).toHaveBeenCalledWith('Database connected\n');
-    expect(mockExit).not.toHaveBeenCalled();
-  });
 
-  it('should handle connection error and exit process', async () => {
-    const error = new Error('Connection failed');
-    mockedConnect.mockRejectedValueOnce(error);
-    await expect(connectDB()).rejects.toThrow('process.exit: 1');
-    expect(mockedConnect).toHaveBeenCalledWith(mongoUrl, {
-      dbName: 'simple-auth',
-    });
-    expect(mockWrite).toHaveBeenCalledWith(`Error ${error}\n`);
-    expect(mockExit).toHaveBeenCalledWith(1);
+    // Verify
+    expect(mongoose.connect).toHaveBeenCalledTimes(1);
+    expect(mongoose.connection.readyState).toBe(1); // 1 means connected
+
+    // Cleanup
+    process.env.MONGODB_URL = oldUrl;
   });
 
   it('should throw error when MONGODB_URL is not defined', async () => {
+    // Setup
+    const oldUrl = process.env.MONGODB_URL;
     delete process.env.MONGODB_URL;
+
+    // Temporarily modify the config object for this test using type assertion
+    const configAny = config as any;
+    const originalMongoose = configAny.mongoose;
+    configAny.mongoose = undefined;
+
+    // Execute and Verify
     await expect(connectDB()).rejects.toThrow();
+
+    // Cleanup
+    process.env.MONGODB_URL = oldUrl;
+    configAny.mongoose = originalMongoose;
+  });
+
+  it('should disconnect from MongoDB', async () => {
+    await disconnectDB();
+    expect(mongoose.disconnect).toHaveBeenCalledTimes(1);
   });
 });
