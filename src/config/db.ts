@@ -1,17 +1,52 @@
 import mongoose from 'mongoose';
+import config from './config';
+import logger from './logger';
 
-const connectDB = async () => {
+// Define the mongoose config type for better type safety
+interface MongooseConfig {
+  url: string;
+  options: mongoose.ConnectOptions;
+}
+
+// Add mongoose property to config type
+type ConfigWithMongoose = typeof config & {
+  mongoose?: MongooseConfig;
+};
+
+/**
+ * Connect to MongoDB
+ */
+export const connectDB = async (): Promise<void> => {
+  // First check if MongoDB URL is defined
+  const typedConfig = config as ConfigWithMongoose;
+  const url = typedConfig.mongoose?.url || process.env.MONGODB_URL;
+
+  if (!url) {
+    throw new Error('MONGODB_URL is not defined in environment variables');
+  }
+
   try {
-    const DB_URL = process.env.MONGODB_URL;
-    if (!DB_URL) {
-      throw new Error('MONGODB_URL is not defined in the environment');
-    }
-    await mongoose.connect(DB_URL, { dbName: 'simple-auth' });
-    process.stdout.write('Database connected\n');
-  } catch (e) {
-    process.stdout.write(`Error ${e}\n`);
-    process.exit(1);
+    const options =
+      typedConfig.mongoose?.options ||
+      ({
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      } as mongoose.ConnectOptions);
+
+    await mongoose.connect(url, options);
+    logger.info('Connected to MongoDB');
+  } catch (error) {
+    logger.error('MongoDB connection error:', error);
+    throw error;
   }
 };
 
-export default connectDB;
+/**
+ * Disconnect from MongoDB
+ */
+export const disconnectDB = async (): Promise<void> => {
+  if (mongoose.connection.readyState) {
+    await mongoose.disconnect();
+    logger.info('Disconnected from MongoDB');
+  }
+};
