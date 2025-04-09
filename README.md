@@ -13,6 +13,28 @@ A production-ready Node.js boilerplate with TypeScript, Express, MongoDB, and co
 - **Code Quality:** ESLint, Prettier, Husky
 - **Process Manager:** PM2
 - **Containerization:** Docker
+- **Authentication:** bcrypt for password hashing
+- **Validation:** Zod for schema validation
+
+## User Management System
+
+The application includes a complete user management system with the following features:
+
+- **User Model**: MongoDB schema with secure password hashing using bcrypt
+- **User Service**: Comprehensive business logic layer with CRUD operations
+- **User Controllers**: RESTful API endpoints with proper status codes
+- **User Validation**: Zod schemas for request validation
+- **User Routes**: Structured API routes with versioning
+
+### API Endpoints
+
+```
+POST /api/v1/users           - Create a new user
+GET /api/v1/users            - Get all users (with filtering and pagination)
+GET /api/v1/users/:userId    - Get a specific user
+PATCH /api/v1/users/:userId  - Update a user
+DELETE /api/v1/users/:userId - Delete a user
+```
 
 ## Project Structure
 
@@ -20,36 +42,51 @@ A production-ready Node.js boilerplate with TypeScript, Express, MongoDB, and co
 .
 ├── src/
 │   ├── config/           # Configuration files
-│   │   ├── config.ts    # Environment configuration
-│   │   ├── db.ts        # Database connection
-│   │   ├── logger.ts    # Winston logger setup
-│   │   └── morgan.ts    # HTTP request logging
-│   ├── controllers/     # Route controllers
-│   ├── middlewares/     # Express middlewares
+│   │   ├── config.ts     # Environment configuration
+│   │   ├── db.ts         # Database connection
+│   │   ├── logger.ts     # Winston logger setup
+│   │   └── morgan.ts     # HTTP request logging
+│   ├── controllers/      # Route controllers
+│   │   ├── index.ts      # Controller exports
+│   │   └── user.controller.ts # User management controllers
+│   ├── middlewares/      # Express middlewares
 │   │   ├── asyncHandler.ts    # Async error wrapper
+│   │   ├── validate.ts        # Request validation
 │   │   └── errorHandler.ts    # Global error handler
-│   ├── models/         # Mongoose models
-│   ├── routes/         # API routes
-│   │   └── v1/        # API v1 routes
-│   ├── services/       # Business logic
-│   ├── types/         # TypeScript type definitions
-│   ├── utils/         # Utility functions
-│   │   └── ApiError.ts # Custom error class
-│   ├── app.ts         # Express app setup
-│   └── index.ts       # Application entry point
+│   ├── models/           # Mongoose models
+│   │   ├── index.ts      # Model exports
+│   │   └── user.model.ts # User schema and methods
+│   ├── routes/           # API routes
+│   │   └── v1/           # API v1 routes
+│   │       ├── index.ts   # Route registry
+│   │       └── user.route.ts # User endpoints
+│   ├── services/         # Business logic
+│   │   ├── index.ts      # Service exports
+│   │   └── user.service.ts # User operations
+│   ├── types/           # TypeScript type definitions
+│   ├── utils/           # Utility functions
+│   │   └── ApiError.ts  # Custom error class
+│   ├── validations/     # Request validation schemas
+│   │   ├── index.ts     # Validation exports
+│   │   └── user.validation.ts # User validation schemas
+│   ├── app.ts          # Express app setup
+│   └── index.ts        # Application entry point
 ├── tests/
-│   ├── integration/   # Integration tests
-│   │   └── app.test.ts
-│   └── unit/         # Unit tests
-│       ├── config/   # Configuration tests
-│       ├── middlewares/
-│       └── utils/    # Utility function tests
-├── logs/            # Application logs
-├── docker-compose.yml  # Base Docker composition
-├── docker-compose.dev.yml
-├── docker-compose.prod.yml
-├── docker-compose.test.yml
-└── ecosystem.config.json # PM2 configuration
+│   ├── integration/     # Integration tests
+│   │   ├── app.test.ts
+│   │   └── routes/      # API route tests
+│   │       └── user.route.test.ts # User API tests
+│   └── unit/           # Unit tests
+│       ├── config/     # Configuration tests
+│       ├── controllers/ # Controller tests
+│       │   └── user.controller.test.ts
+│       ├── middlewares/ # Middleware tests
+│       ├── models/     # Database model tests
+│       │   └── user.model.test.ts
+│       ├── services/   # Service layer tests
+│       │   └── user.service.test.ts
+│       └── utils/      # Utility function tests
+└── logs/            # Application logs
 ```
 
 ## Test-Driven Development (TDD)
@@ -66,29 +103,22 @@ This project follows TDD principles:
   - Config module tests
   - Middleware tests
   - Utility function tests
+  - Model tests
+  - Service tests
+  - Controller tests
 - **Integration Tests:** Test component interactions
   - API endpoint tests
   - Database operations
   - Middleware chain tests
 
-### Test Categories
+### Test Coverage
 
-1. **Config Tests**
+The project maintains high test coverage across all components:
 
-   - Environment variable handling
-   - Database configuration
-   - Logger setup
-   - Morgan configuration
-
-2. **Middleware Tests**
-
-   - Error handling
-   - Async operation handling
-   - Request processing
-
-3. **Utility Tests**
-   - Custom error handling
-   - Helper functions
+- **User Model**: Password hashing, validation, methods
+- **User Service**: CRUD operations, error handling, business logic
+- **User Controller**: Request handling, response formatting, error management
+- **Route Integration**: End-to-end API functionality tests
 
 ## Error Handling
 
@@ -142,22 +172,6 @@ The project implements a robust error handling system:
 - Development and testing environments
 - MongoDB container integration
 
-## Available Scripts
-
-- `yarn start` - Start production server with PM2
-- `yarn dev` - Start development server with nodemon
-- `yarn build` - Build TypeScript code
-- `yarn test` - Run tests
-- `yarn test:watch` - Run tests in watch mode
-- `yarn coverage` - Generate test coverage report
-- `yarn lint` - Run ESLint
-- `yarn format` - Run Prettier check
-- `yarn docker:prod` - Run production Docker environment
-- `yarn docker:dev` - Run development Docker environment
-- `yarn docker:test` - Run test Docker environment
-
-## Environment Variables
-
 ## Input Validation & Sanitization
 
 ### Environment Variables
@@ -206,6 +220,20 @@ Features:
 - Detailed error messages
 - Automatic request data parsing and transformation
 
+## Available Scripts
+
+- `yarn start` - Start production server with PM2
+- `yarn dev` - Start development server with nodemon
+- `yarn build` - Build TypeScript code
+- `yarn test` - Run tests
+- `yarn test:watch` - Run tests in watch mode
+- `yarn coverage` - Generate test coverage report
+- `yarn lint` - Run ESLint
+- `yarn format` - Run Prettier check
+- `yarn docker:prod` - Run production Docker environment
+- `yarn docker:dev` - Run development Docker environment
+- `yarn docker:test` - Run test Docker environment
+
 ## Getting Started
 
 1. Clone the repository
@@ -235,26 +263,6 @@ Production environment:
 
 ```bash
 yarn docker:prod
-```
-
-## Testing
-
-Run all tests:
-
-```bash
-yarn test
-```
-
-Generate coverage report:
-
-```bash
-yarn coverage
-```
-
-Watch mode for TDD:
-
-```bash
-yarn test:watch
 ```
 
 ## License
