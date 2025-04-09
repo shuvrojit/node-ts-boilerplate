@@ -2,6 +2,8 @@
 process.env.NODE_ENV = 'test';
 process.env.PORT = '3000';
 process.env.MONGODB_URL = 'mongodb://localhost:27017/test-db';
+process.env.OPENAI_API_KEY = 'sk-test-dummy-key';
+process.env.LOG_LEVEL = 'error';
 
 // Add any other required environment variables for testing
 process.env.JWT_SECRET = 'test-jwt-secret';
