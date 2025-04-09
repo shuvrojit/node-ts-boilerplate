@@ -34,7 +34,7 @@ export const validate = (schema: ValidationSchema) => {
         const errorMessage = validationErrors
           .map((e) => `${e.path} - ${e.message}`)
           .join(', ');
-        next(new ApiError(400, `Validation failed: ${errorMessage}`, false));
+        next(new ApiError(400, `Validation failed: ${errorMessage}`, true));
       } else {
         next(error);
       }

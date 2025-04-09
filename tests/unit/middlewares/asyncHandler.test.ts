@@ -16,7 +16,7 @@ describe('asyncHandler middleware', () => {
 
   test('should handle async function success', async () => {
     const mockData = { message: 'success' };
-    const handler = asyncHandler(async (_req, res: Response) => {
+    const handler = asyncHandler(async (_req: Request, res: Response) => {
       res.json(mockData);
     });
 
