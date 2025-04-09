@@ -3,7 +3,7 @@ dotenv.config();
 
 import app from './app';
 import logger from './config/logger';
-import connectDB from './config/db';
+import { connectDB } from './config/db';
 
 connectDB();
 

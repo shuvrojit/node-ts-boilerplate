@@ -26,12 +26,9 @@ export const connectDB = async (): Promise<void> => {
   }
 
   try {
+    // Remove deprecated options
     const options =
-      typedConfig.mongoose?.options ||
-      ({
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      } as mongoose.ConnectOptions);
+      typedConfig.mongoose?.options || ({} as mongoose.ConnectOptions);
 
     await mongoose.connect(url, options);
     logger.info('Connected to MongoDB');
