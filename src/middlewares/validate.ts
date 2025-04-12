@@ -6,6 +6,7 @@ export type ValidationSchema = {
   params?: z.ZodType;
   query?: z.ZodType;
   body?: z.ZodType;
+  cookies?: z.ZodType;
 };
 
 /**
@@ -23,6 +24,10 @@ export const validate = (schema: ValidationSchema) => {
       }
       if (schema.body) {
         req.body = schema.body.parse(req.body);
+      }
+      if (schema.cookies) {
+        // Validate cookies, but don't replace them in the request
+        schema.cookies.parse(req.cookies);
       }
       next();
     } catch (error) {

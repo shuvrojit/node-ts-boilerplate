@@ -13,7 +13,7 @@ A production-ready Node.js boilerplate with TypeScript, Express, MongoDB, and co
 - **Code Quality:** ESLint, Prettier, Husky
 - **Process Manager:** PM2
 - **Containerization:** Docker
-- **Authentication:** bcrypt for password hashing
+- **Authentication:** JWT + bcrypt
 - **Validation:** Zod for schema validation
 
 ## User Management System
@@ -27,6 +27,15 @@ The application includes a complete user management system with the following fe
 - **User Routes**: Structured API routes with versioning
 
 ### API Endpoints
+
+#### Authentication
+
+```
+POST /api/v1/auth/register   - Register a new user
+POST /api/v1/auth/login      - Login user and get JWT token
+```
+
+#### User Management
 
 ```
 POST /api/v1/users           - Create a new user
@@ -48,6 +57,7 @@ DELETE /api/v1/users/:userId - Delete a user
 │   │   └── morgan.ts     # HTTP request logging
 │   ├── controllers/      # Route controllers
 │   │   ├── index.ts      # Controller exports
+│   │   ├── auth.controller.ts # Authentication controllers
 │   │   └── user.controller.ts # User management controllers
 │   ├── middlewares/      # Express middlewares
 │   │   ├── asyncHandler.ts    # Async error wrapper
@@ -62,12 +72,14 @@ DELETE /api/v1/users/:userId - Delete a user
 │   │       └── user.route.ts # User endpoints
 │   ├── services/         # Business logic
 │   │   ├── index.ts      # Service exports
+│   │   ├── auth.service.ts # Authentication operations
 │   │   └── user.service.ts # User operations
 │   ├── types/           # TypeScript type definitions
 │   ├── utils/           # Utility functions
 │   │   └── ApiError.ts  # Custom error class
 │   ├── validations/     # Request validation schemas
 │   │   ├── index.ts     # Validation exports
+│   │   ├── auth.validation.ts # Auth validation schemas
 │   │   └── user.validation.ts # User validation schemas
 │   ├── app.ts          # Express app setup
 │   └── index.ts        # Application entry point
@@ -233,6 +245,7 @@ Features:
 - `yarn docker:prod` - Run production Docker environment
 - `yarn docker:dev` - Run development Docker environment
 - `yarn docker:test` - Run test Docker environment
+- `yarn prepare` - Setup Husky git hooks
 
 ## Getting Started
 

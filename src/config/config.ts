@@ -20,10 +20,19 @@ const config = {
     format: env.LOG_FORMAT,
   },
 
-  // JWT (for future use)
+  // JWT configuration
   jwt: {
     secret: env.JWT_SECRET,
+    accessExpirationMinutes: env.JWT_ACCESS_EXPIRATION_MINUTES,
+    refreshExpirationDays: env.JWT_REFRESH_EXPIRATION_DAYS,
     expiresIn: env.JWT_EXPIRES_IN,
+  },
+
+  // Cookie configuration
+  cookie: {
+    secret: env.COOKIE_SECRET,
+    secure: env.COOKIE_SECURE,
+    httpOnly: true,
   },
 };
 

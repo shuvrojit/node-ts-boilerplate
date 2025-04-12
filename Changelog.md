@@ -6,12 +6,19 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Authentication system with secure login/signup functionality
+  - JWT-based authentication
+  - Auth controller with login/signup endpoints
+  - Auth service with token management
+  - Auth middleware for route protection
+  - Auth validation schemas
 - Complete user management system with CRUD operations
   - User model with bcrypt password hashing
   - User service layer with comprehensive business logic
   - User controllers with proper RESTful endpoints
   - User routes with validation and versioning
   - Organized index files for better module management
+- Added Husky git hooks for code quality checks before commit
 
 ### Changed
 
@@ -23,8 +30,11 @@ All notable changes to this project will be documented in this file.
 ### Enhanced
 
 - Improved code organization with better module exports
-- Added comprehensive test coverage for all user management components:
+- Added comprehensive test coverage for all components:
   - User model tests
   - User service tests
   - User controller tests
   - User API integration tests
+  - Auth service tests
+  - Auth controller tests
+  - Middleware tests (auth, validation, error handling)

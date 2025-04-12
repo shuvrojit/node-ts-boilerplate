@@ -23,9 +23,20 @@ export const envSchema = z.object({
     .enum(['combined', 'common', 'dev', 'short', 'tiny'])
     .default('dev'),
 
-  // Security (for future use)
-  JWT_SECRET: z.string().optional(),
+  // Security and Authentication
+  JWT_SECRET: z.string({
+    required_error: 'JWT_SECRET is required in environment variables',
+  }),
+  JWT_ACCESS_EXPIRATION_MINUTES: z.coerce.number().positive().default(30),
+  JWT_REFRESH_EXPIRATION_DAYS: z.coerce.number().positive().default(30),
   JWT_EXPIRES_IN: z.string().default('1d'),
+
+  // Cookie settings
+  COOKIE_SECRET: z.string().default('cookie-secret-key-dev'),
+  COOKIE_SECURE: z.preprocess(
+    (val) => val === 'true',
+    z.boolean().default(false)
+  ),
 
   // API Configuration
   API_VERSION: z.string().default('v1'),
