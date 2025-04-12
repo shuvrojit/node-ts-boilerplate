@@ -16,7 +16,6 @@ const userSchema = new Schema<IUser>(
   {
     name: {
       type: String,
-      required: true,
       trim: true,
     },
     email: {
@@ -37,6 +36,14 @@ const userSchema = new Schema<IUser>(
       required: true,
       minlength: 8,
       private: true, // Will not be returned in queries
+      validate: {
+        validator: function (v: string) {
+          // Check for at least one number, one symbol, and eight characters
+          return /^(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/.test(v);
+        },
+        message: () =>
+          'Password must contain at least eight characters, one number and one symbol',
+      },
     },
     role: {
       type: String,
