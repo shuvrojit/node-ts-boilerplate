@@ -23,6 +23,11 @@ export const envSchema = z.object({
     .enum(['combined', 'common', 'dev', 'short', 'tiny'])
     .default('dev'),
 
+  // OpenAI Configuration
+  OPENAI_API_KEY: z.string({
+    required_error: 'OPENAI_API_KEY is required in environment variables',
+  }),
+
   // Security and Authentication
   JWT_SECRET: z.string({
     required_error: 'JWT_SECRET is required in environment variables',

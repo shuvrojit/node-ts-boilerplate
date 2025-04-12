@@ -20,6 +20,11 @@ const config = {
     format: env.LOG_FORMAT,
   },
 
+  // OpenAI configuration
+  openai: {
+    apiKey: env.OPENAI_API_KEY,
+  },
+
   // JWT configuration
   jwt: {
     secret: env.JWT_SECRET,
