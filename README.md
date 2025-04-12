@@ -8,13 +8,15 @@ A production-ready Node.js boilerplate with TypeScript, Express, MongoDB, and co
 - **Language:** TypeScript
 - **Web Framework:** Express.js
 - **Database:** MongoDB with Mongoose
+- **Authentication:** JWT (Access & Refresh Tokens) + bcrypt + Cookies (HttpOnly)
+- **Validation:** Zod for schema validation (Requests & Environment Variables)
 - **Logging:** Winston + Morgan
 - **Testing:** Jest with Supertest
 - **Code Quality:** ESLint, Prettier, Husky
 - **Process Manager:** PM2
 - **Containerization:** Docker
-- **Authentication:** JWT + bcrypt
-- **Validation:** Zod for schema validation
+- **Rate Limiting:** Express Rate Limit
+- **AI Integration:** OpenAI SDK (configured for Gemini)
 
 ## User Management System
 
@@ -23,6 +25,7 @@ The application includes a complete user management system with the following fe
 - **User Model**: MongoDB schema with secure password hashing using bcrypt
 - **User Service**: Comprehensive business logic layer with CRUD operations
 - **User Controllers**: RESTful API endpoints with proper status codes
+- **Role-Based Access Control (RBAC)**: Differentiates permissions between 'admin' and 'user' roles.
 - **User Validation**: Zod schemas for request validation
 - **User Routes**: Structured API routes with versioning
 
@@ -33,16 +36,19 @@ The application includes a complete user management system with the following fe
 ```
 POST /api/v1/auth/register   - Register a new user
 POST /api/v1/auth/login      - Login user and get JWT token
+POST /api/v1/auth/logout     - Logout user (clears refresh token cookie)
+POST /api/v1/auth/refresh    - Refresh JWT tokens using refresh token cookie
+GET /api/v1/auth/profile     - Get authenticated user's profile
 ```
 
 #### User Management
 
 ```
-POST /api/v1/users           - Create a new user
-GET /api/v1/users            - Get all users (with filtering and pagination)
-GET /api/v1/users/:userId    - Get a specific user
-PATCH /api/v1/users/:userId  - Update a user
-DELETE /api/v1/users/:userId - Delete a user
+POST /api/v1/users           - Create a new user (Admin only)
+GET /api/v1/users            - Get all users (Admin only, with filtering and pagination)
+GET /api/v1/users/:userId    - Get a specific user (Admin or Owner)
+PATCH /api/v1/users/:userId  - Update a user (Admin or Owner)
+DELETE /api/v1/users/:userId - Delete a user (Admin only)
 ```
 
 ## Project Structure
@@ -51,18 +57,20 @@ DELETE /api/v1/users/:userId - Delete a user
 .
 ├── src/
 │   ├── config/           # Configuration files
-│   │   ├── config.ts     # Environment configuration
+│   │   ├── config.ts     # Application configuration derived from environment
 │   │   ├── db.ts         # Database connection
+│   │   ├── env.validation.ts # Zod schema for environment variables
 │   │   ├── logger.ts     # Winston logger setup
 │   │   └── morgan.ts     # HTTP request logging
 │   ├── controllers/      # Route controllers
 │   │   ├── index.ts      # Controller exports
 │   │   ├── auth.controller.ts # Authentication controllers
 │   │   └── user.controller.ts # User management controllers
-│   ├── middlewares/      # Express middlewares
+│   ├── middlewares/       # Express middlewares
 │   │   ├── asyncHandler.ts    # Async error wrapper
+│   │   ├── auth.ts            # Authentication & Authorization (RBAC)
 │   │   ├── validate.ts        # Request validation
-│   │   └── errorHandler.ts    # Global error handler
+│   │   └── errorHandler.ts    # Global error handling (converter, handler, notFound)
 │   ├── models/           # Mongoose models
 │   │   ├── index.ts      # Model exports
 │   │   └── user.model.ts # User schema and methods
@@ -70,13 +78,14 @@ DELETE /api/v1/users/:userId - Delete a user
 │   │   └── v1/           # API v1 routes
 │   │       ├── index.ts   # Route registry
 │   │       └── user.route.ts # User endpoints
+│   │       └── auth.route.ts # Authentication endpoints
 │   ├── services/         # Business logic
 │   │   ├── index.ts      # Service exports
 │   │   ├── auth.service.ts # Authentication operations
 │   │   └── user.service.ts # User operations
-│   ├── types/           # TypeScript type definitions
 │   ├── utils/           # Utility functions
 │   │   └── ApiError.ts  # Custom error class
+│   │   └── AIRequest.ts # Utility for making AI requests
 │   ├── validations/     # Request validation schemas
 │   │   ├── index.ts     # Validation exports
 │   │   ├── auth.validation.ts # Auth validation schemas
@@ -88,15 +97,17 @@ DELETE /api/v1/users/:userId - Delete a user
 │   │   ├── app.test.ts
 │   │   └── routes/      # API route tests
 │   │       └── user.route.test.ts # User API tests
+│   ├── testEnv.ts       # Setup file for test environment variables
 │   └── unit/           # Unit tests
 │       ├── config/     # Configuration tests
 │       ├── controllers/ # Controller tests
 │       │   └── user.controller.test.ts
 │       ├── middlewares/ # Middleware tests
 │       ├── models/     # Database model tests
+│       │   └── __mocks__/ # Mocks for models (if needed)
 │       │   └── user.model.test.ts
 │       ├── services/   # Service layer tests
-│       │   └── user.service.test.ts
+│       │   └── user.service.ts
 │       └── utils/      # Utility function tests
 └── logs/            # Application logs
 ```
@@ -131,6 +142,7 @@ The project maintains high test coverage across all components:
 - **User Service**: CRUD operations, error handling, business logic
 - **User Controller**: Request handling, response formatting, error management
 - **Route Integration**: End-to-end API functionality tests
+- **Auth Service/Middleware**: Token generation, verification, protection logic
 
 ## Error Handling
 
@@ -149,9 +161,14 @@ The project implements a robust error handling system:
    - Error logging integration
 
 3. **Async Handler**
+
    - Promise rejection catching
    - Express middleware integration
    - Route handler wrapping
+
+4. **Not Found Handler**
+   - Catches requests to undefined routes.
+   - Generates a 404 `ApiError`.
 
 ## Features
 
@@ -162,6 +179,13 @@ The project implements a robust error handling system:
 - Different log levels for development and production
 - HTTP request logging with Morgan
 - Separate error logs and combined logs
+
+### Authentication & Authorization
+
+- Secure user registration and login.
+- JWT-based access and refresh tokens.
+- HttpOnly cookie for refresh token storage.
+- Role-Based Access Control (RBAC) for differentiating user permissions.
 
 ### Database
 
@@ -176,6 +200,11 @@ The project implements a robust error handling system:
 - Prettier for code formatting
 - Husky for Git hooks
 - Lint-staged for pre-commit checks
+
+### AI Integration
+
+- Utility function (`AIRequest.ts`) to interact with AI models via OpenAI SDK.
+- Configurable for different models (defaults to Gemini via compatible endpoint).
 
 ### Docker Support
 
@@ -199,9 +228,15 @@ console.log(env.PORT); // typed as number
 
 Required environment variables:
 
-- `NODE_ENV`: Application environment (development/production/test, defaults to 'development')
 - `MONGODB_URL`: MongoDB connection URL (required, must be valid URL)
-- `PORT`: Application port (defaults to 3000, must be positive number)
+- `OPENAI_API_KEY`: API Key for the AI service (required).
+- `JWT_SECRET`: Secret key for signing JWTs (required).
+
+Optional environment variables (with defaults):
+
+- `NODE_ENV`: Application environment ('development', 'production', 'test', defaults to 'development')
+- `PORT`: Application port (defaults to 3000)
+- See `src/config/env.validation.ts` for all variables and defaults (e.g., `COOKIE_SECRET`, `API_RATE_LIMIT`, `LOG_LEVEL`).
 
 ### Request Validation
 
@@ -213,13 +248,11 @@ app.post(
   '/users',
   validate({
     body: z.object({
+      // Example schema
       name: z.string().min(3),
       email: z.string().email(),
-      age: z.number().positive(),
     }),
-    query: z.object({
-      fields: z.string().optional(),
-    }),
+    // Can also validate params, query, cookies
   }),
   userController.createUser
 );
@@ -227,7 +260,7 @@ app.post(
 
 Features:
 
-- Validate request body, query parameters, and URL parameters
+- Validate request body, query parameters, URL parameters, and cookies.
 - Type-safe validation with TypeScript integration
 - Detailed error messages
 - Automatic request data parsing and transformation
@@ -240,6 +273,7 @@ Features:
 - `yarn test` - Run tests
 - `yarn test:watch` - Run tests in watch mode
 - `yarn coverage` - Generate test coverage report
+- `yarn coverage:coveralls` - Send coverage report to Coveralls (if configured)
 - `yarn lint` - Run ESLint
 - `yarn format` - Run Prettier check
 - `yarn docker:prod` - Run production Docker environment
@@ -256,7 +290,7 @@ Features:
    ```
 3. Set up environment variables:
 
-   - Copy `.env.example` to `.env` (if provided)
+   - Copy `.env.example` to `.env`
    - Configure required environment variables
 
 4. Start development server:
