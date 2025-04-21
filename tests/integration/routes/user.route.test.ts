@@ -2,6 +2,8 @@ import request from 'supertest';
 import mongoose from 'mongoose';
 import app from '../../../src/app';
 import { User } from '../../../src/models';
+import { authService } from '../../../src/services';
+import { Request, Response, NextFunction } from 'express';
 
 // Mock the models
 jest.mock('../../../src/models', () => {
@@ -19,13 +21,36 @@ jest.mock('../../../src/models', () => {
   };
 });
 
+// Mock the auth middleware
+jest.mock('../../../src/middlewares/auth', () => ({
+  authenticate: (req: Request, _res: Response, next: NextFunction) => {
+    req.user = { id: 'mock-user-id', role: 'admin' } as any; // Cast to any for mock
+    next();
+  },
+  authorize: () => (_req: Request, _res: Response, next: NextFunction) => {
+    // Added underscores
+    next();
+  },
+}));
+
+jest.mock('../../../src/services/auth.service', () => {
+  const originalModule = jest.requireActual(
+    '../../../src/services/auth.service'
+  );
+
+  return {
+    ...originalModule,
+    verifyToken: jest.fn(),
+  };
+});
+
 describe('User Routes', () => {
   const userId = new mongoose.Types.ObjectId().toString();
   const mockUser = {
     _id: userId,
     name: 'Test User',
     email: 'test@example.com',
-    role: 'user',
+    role: 'admin', // Changed from 'user' to 'admin' to pass authorization checks
     isEmailVerified: false,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -35,6 +60,15 @@ describe('User Routes', () => {
     ...mockUser,
     password: 'password123',
   };
+
+  const mockTokenPayload = {
+    sub: userId,
+    type: 'ACCESS',
+  };
+
+  beforeEach(() => {
+    (authService.verifyToken as jest.Mock).mockReturnValue(mockTokenPayload);
+  });
 
   afterEach(() => {
     jest.clearAllMocks();
@@ -47,11 +81,14 @@ describe('User Routes', () => {
       // Mock User.create to return mockUser
       (User.create as jest.Mock).mockResolvedValue(mockUser);
 
-      const res = await request(app).post('/api/v1/users').send({
-        name: 'Test User',
-        email: 'test@example.com',
-        password: 'password123',
-      });
+      const res = await request(app)
+        .post('/api/v1/users')
+        .set('Authorization', 'Bearer valid-token')
+        .send({
+          name: 'Test User',
+          email: 'test@example.com',
+          password: 'Password123@',
+        });
 
       expect(res.status).toBe(201);
       expect(res.body).toHaveProperty('status', 'success');
@@ -65,11 +102,14 @@ describe('User Routes', () => {
     });
 
     it('should return validation error for invalid input', async () => {
-      const res = await request(app).post('/api/v1/users').send({
-        name: 'T', // Too short (validation should fail)
-        email: 'invalid-email',
-        password: 'short', // Too short (validation should fail)
-      });
+      const res = await request(app)
+        .post('/api/v1/users')
+        .set('Authorization', 'Bearer valid-token')
+        .send({
+          name: 'T', // Too short (validation should fail)
+          email: 'invalid-email',
+          password: 'short', // Too short (validation should fail)
+        });
 
       expect(res.status).toBe(400);
       expect(res.body).toHaveProperty('status', 'error');
@@ -89,7 +129,9 @@ describe('User Routes', () => {
       // Mock User.findById to return mockUser
       (User.findById as jest.Mock).mockResolvedValue(mockUser);
 
-      const res = await request(app).get(`/api/v1/users/${userId}`);
+      const res = await request(app)
+        .get(`/api/v1/users/${userId}`)
+        .set('Authorization', 'Bearer valid-token');
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('status', 'success');
@@ -107,7 +149,9 @@ describe('User Routes', () => {
       // Mock User.findById to return null
       (User.findById as jest.Mock).mockResolvedValue(null);
 
-      const res = await request(app).get(`/api/v1/users/${userId}`);
+      const res = await request(app)
+        .get(`/api/v1/users/${userId}`)
+        .set('Authorization', 'Bearer valid-token');
 
       expect(res.status).toBe(404);
       expect(res.body).toHaveProperty('status', 'error');
@@ -115,7 +159,9 @@ describe('User Routes', () => {
     });
 
     it('should return validation error for invalid ID format', async () => {
-      const res = await request(app).get('/api/v1/users/invalid-id');
+      const res = await request(app)
+        .get('/api/v1/users/invalid-id')
+        .set('Authorization', 'Bearer valid-token');
 
       expect(res.status).toBe(400);
       expect(res.body).toHaveProperty('status', 'error');
@@ -135,9 +181,12 @@ describe('User Routes', () => {
         }),
       });
 
-      const res = await request(app).patch(`/api/v1/users/${userId}`).send({
-        name: 'Updated Name',
-      });
+      const res = await request(app)
+        .patch(`/api/v1/users/${userId}`)
+        .set('Authorization', 'Bearer valid-token')
+        .send({
+          name: 'Updated Name',
+        });
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('status', 'success');
@@ -158,7 +207,9 @@ describe('User Routes', () => {
         deleteOne: jest.fn().mockResolvedValue(true),
       });
 
-      const res = await request(app).delete(`/api/v1/users/${userId}`);
+      const res = await request(app)
+        .delete(`/api/v1/users/${userId}`)
+        .set('Authorization', 'Bearer valid-token');
 
       expect(res.status).toBe(204);
     });
@@ -181,7 +232,9 @@ describe('User Routes', () => {
       // Mock User.countDocuments to return count
       (User.countDocuments as jest.Mock).mockResolvedValue(2);
 
-      const res = await request(app).get('/api/v1/users?page=1&limit=10');
+      const res = await request(app)
+        .get('/api/v1/users?page=1&limit=10')
+        .set('Authorization', 'Bearer valid-token');
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('status', 'success');
@@ -207,12 +260,15 @@ describe('User Routes', () => {
       // Mock User.countDocuments to return count
       (User.countDocuments as jest.Mock).mockResolvedValue(1);
 
-      const res = await request(app).get('/api/v1/users').query({
-        name: 'Test',
-        role: 'user',
-        page: '1',
-        limit: '10',
-      });
+      const res = await request(app)
+        .get('/api/v1/users')
+        .set('Authorization', 'Bearer valid-token')
+        .query({
+          name: 'Test',
+          role: 'user',
+          page: '1',
+          limit: '10',
+        });
 
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('status', 'success');

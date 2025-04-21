@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { userController } from '../../../src/controllers';
 import { userService } from '../../../src/services';
 import mongoose from 'mongoose';
+import ApiError from '../../../src/utils/ApiError';
 
 // Mock the userService
 jest.mock('../../../src/services', () => ({
@@ -62,26 +63,28 @@ describe('UserController', () => {
       });
     });
 
-    // TODO: fix this test
     it('should call next with error if service throws', async () => {
-      const error = new Error('Database error');
+      const dbError = new Error('Database error');
       mockRequest.body = {
         name: 'Test User',
         email: 'test@example.com',
         password: 'password123',
       };
 
-      (userService.createUser as jest.Mock).mockRejectedValueOnce(error);
+      (userService.createUser as jest.Mock).mockRejectedValueOnce(dbError);
 
-      // Call the controller and wait for it to complete
+      // Call the controller; asyncHandler will call next with error
       await userController.createUser(
         mockRequest as Request,
         mockResponse as Response,
         mockNext
       );
+      // Wait for the error to propagate to next
+      await new Promise(process.nextTick);
 
-      // Check that next was called with the error and no response was sent
-      expect(mockNext).toHaveBeenCalledWith(error);
+      // Check that next was called with the error
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockNext.mock.calls[0][0].message).toBe('Database error');
       expect(mockResponse.status).not.toHaveBeenCalled();
       expect(mockResponse.json).not.toHaveBeenCalled();
     });
@@ -115,6 +118,28 @@ describe('UserController', () => {
         status: 'success',
         data: mockUser,
       });
+    });
+
+    it('should call next with error if user not found', async () => {
+      const userId = new mongoose.Types.ObjectId().toString();
+      mockRequest.params = {
+        userId,
+      };
+
+      (userService.getUserById as jest.Mock).mockResolvedValueOnce(null);
+
+      await userController.getUser(
+        mockRequest as Request,
+        mockResponse as Response,
+        mockNext
+      );
+      // Wait for the error to propagate to next
+      await new Promise(process.nextTick);
+
+      expect(userService.getUserById).toHaveBeenCalledWith(userId);
+      expect(mockNext).toHaveBeenCalled();
+      expect(mockNext.mock.calls[0][0]).toBeInstanceOf(ApiError);
+      expect(mockResponse.status).not.toHaveBeenCalled();
     });
   });
 

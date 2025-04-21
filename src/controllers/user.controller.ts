@@ -41,6 +41,9 @@ const getUser = asyncHandler(
     checkUserAccess(req, req.params.userId);
 
     const user = await userService.getUserById(req.params.userId);
+    if (!user) {
+      throw new ApiError(404, 'User not found');
+    }
     res.status(200).json({
       status: 'success',
       data: user,
