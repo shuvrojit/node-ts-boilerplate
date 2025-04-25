@@ -20,19 +20,26 @@ export const authenticate = async (
   _res: Response,
   next: NextFunction
 ): Promise<void> => {
+  let token: string | undefined;
+
+  // 1. Check for token in cookies
+  if (req.cookies && req.cookies.accessToken) {
+    token = req.cookies.accessToken;
+  }
+  // 2. If not in cookies, check Authorization header
+  else if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer ')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+
+  // If no token found in either location
+  if (!token) {
+    return next(new ApiError(401, 'Authentication required, token missing'));
+  }
+
   try {
-    // Get the auth header
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new ApiError(401, 'Authentication required');
-    }
-
-    // Extract the token
-    const token = authHeader.split(' ')[1];
-    if (!token) {
-      throw new ApiError(401, 'Authentication token not provided');
-    }
-
     // Verify the token
     const payload = authService.verifyToken(token);
     if (payload.type !== 'ACCESS') {

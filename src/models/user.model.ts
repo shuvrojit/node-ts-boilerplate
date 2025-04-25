@@ -7,6 +7,7 @@ export interface IUser extends Document {
   password: string;
   role: 'user' | 'admin';
   isEmailVerified: boolean;
+  refreshToken?: string; // Optional refresh token field
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -53,6 +54,10 @@ const userSchema = new Schema<IUser>(
     isEmailVerified: {
       type: Boolean,
       default: false,
+    },
+    refreshToken: {
+      type: String,
+      private: true, // Ensure refresh token isn't returned by default
     },
   },
   {

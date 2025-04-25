@@ -1,8 +1,10 @@
 import jwt from 'jsonwebtoken';
 import config from '../config/config';
 import { IUser } from '../models';
+// import bcrypt from 'bcryptjs'; // Removed unused import
 import ApiError from '../utils/ApiError';
-import { userService } from './index';
+// import { userService } from './index'; // Removed unused import
+import User from '../models/user.model'; // Import User model
 
 export interface TokenPayload {
   sub: string; // User ID
@@ -75,14 +77,22 @@ class AuthService {
   /**
    * Login with email and password
    * @param {LoginCredentials} credentials - Login credentials
-   * @returns {Promise<{user: IUser, tokens: AuthTokens}>} User and tokens
+   * @returns {Promise<{user: Omit<IUser, 'password' | 'refreshToken'>, tokens: AuthTokens}>} User object (without sensitive fields) and tokens
    */
   public async login(
     credentials: LoginCredentials
-  ): Promise<{ user: IUser; tokens: AuthTokens }> {
+  ): Promise<{
+    user: Omit<IUser, 'password' | 'refreshToken'>;
+    tokens: AuthTokens;
+  }> {
     try {
-      // Get user by email
-      const user = await userService.getUserByEmail(credentials.email);
+      // Get user by email, selecting the password and refreshToken fields explicitly
+      const user = await User.findOne({ email: credentials.email }).select(
+        '+password +refreshToken'
+      );
+      if (!user) {
+        throw new ApiError(401, 'Incorrect email or password');
+      }
 
       // Verify password
       const isPasswordMatch = await user.comparePassword(credentials.password);
@@ -97,7 +107,31 @@ class AuthService {
 
       // Generate tokens using a safe string conversion
       const tokens = this.generateAuthTokens(String(user._id));
-      return { user, tokens };
+
+      // Save the refresh token to the user document
+      // Consider hashing the refresh token before saving for added security
+      user.refreshToken = tokens.refreshToken; // Store the plain token for now, hashing can be added
+      await user.save();
+
+      // Create a user object for the response, excluding sensitive fields
+      // Use Omit<IUser, 'password' | 'refreshToken'> for type safety if needed,
+      // but constructing a new object is generally safer than deleting properties.
+      const userResponse = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        // Explicitly ensure IUser properties are included if needed, excluding sensitive ones
+      };
+
+      // Cast the constructed object to the expected return type
+      return {
+        user: userResponse as Omit<IUser, 'password' | 'refreshToken'>,
+        tokens,
+      };
     } catch (error) {
       // Ensure consistent error message for failed login attempts
       // regardless of whether the user was not found or the password didn't match
@@ -112,21 +146,33 @@ class AuthService {
    */
   public async refreshTokens(refreshToken: string): Promise<AuthTokens> {
     try {
-      // Verify refresh token
+      // Verify refresh token structure and expiration
       const payload = this.verifyToken(refreshToken);
       if (payload.type !== 'REFRESH') {
         throw new ApiError(401, 'Invalid token type');
       }
 
-      // Check if user exists
+      // Find user by ID and check if the provided refresh token matches the stored one
       const userId = payload.sub;
-      const user = await userService.getUserById(userId);
-      if (!user) {
-        throw new ApiError(401, 'User not found');
+      const user = await User.findById(userId).select('+refreshToken'); // Select refreshToken
+      if (!user || !user.refreshToken) {
+        throw new ApiError(401, 'Invalid refresh token or user not found');
+      }
+
+      // Compare the provided refresh token with the stored one
+      // If hashing was implemented, use bcrypt.compare here
+      if (refreshToken !== user.refreshToken) {
+        throw new ApiError(401, 'Refresh token mismatch');
       }
 
       // Generate new tokens
-      return this.generateAuthTokens(userId);
+      const newTokens = this.generateAuthTokens(userId);
+
+      // Update the stored refresh token
+      user.refreshToken = newTokens.refreshToken; // Store the new plain token
+      await user.save();
+
+      return newTokens;
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;

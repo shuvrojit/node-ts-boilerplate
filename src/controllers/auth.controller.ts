@@ -3,12 +3,20 @@ import { authService, userService } from '../services';
 import asyncHandler from '../middlewares/asyncHandler';
 import config from '../config/config';
 import { IUser } from '../models';
+import ApiError from '../utils/ApiError'; // Import ApiError
 
-const COOKIE_OPTIONS = {
+const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: config.cookie.secure,
   sameSite: 'strict' as const,
   maxAge: config.jwt.refreshExpirationDays * 24 * 60 * 60 * 1000, // days to milliseconds
+};
+
+const ACCESS_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: config.cookie.secure,
+  sameSite: 'strict' as const,
+  maxAge: config.jwt.accessExpirationMinutes * 60 * 1000, // minutes to milliseconds
 };
 
 /**
@@ -22,15 +30,16 @@ const register = asyncHandler(
     // Generate auth tokens
     const tokens = authService.generateAuthTokens(String(user._id));
 
-    // Set the refresh token in an HTTP-only cookie
-    res.cookie('refreshToken', tokens.refreshToken, COOKIE_OPTIONS);
+    // Set tokens in HTTP-only cookies
+    res.cookie('refreshToken', tokens.refreshToken, REFRESH_COOKIE_OPTIONS);
+    res.cookie('accessToken', tokens.accessToken, ACCESS_COOKIE_OPTIONS);
 
-    // Return the user data and access token
+    // Return the user data and tokens
     res.status(201).json({
       status: 'success',
       data: {
-        user,
-        accessToken: tokens.accessToken,
+        user, // Note: Ensure sensitive data isn't exposed here if not handled in service
+        tokens,
       },
     });
   }
@@ -47,15 +56,16 @@ const login = asyncHandler(
     // Authenticate user
     const { user, tokens } = await authService.login({ email, password });
 
-    // Set the refresh token in an HTTP-only cookie
-    res.cookie('refreshToken', tokens.refreshToken, COOKIE_OPTIONS);
+    // Set tokens in HTTP-only cookies
+    res.cookie('refreshToken', tokens.refreshToken, REFRESH_COOKIE_OPTIONS);
+    res.cookie('accessToken', tokens.accessToken, ACCESS_COOKIE_OPTIONS);
 
-    // Return user data and access token
+    // Return user data and tokens
     res.status(200).json({
       status: 'success',
       data: {
-        user,
-        accessToken: tokens.accessToken,
+        user, // User object already sanitized in authService.login
+        tokens,
       },
     });
   }
@@ -82,20 +92,24 @@ const logout = asyncHandler(
  */
 const refreshTokens = asyncHandler(
   async (req: Request, res: Response, _next: NextFunction) => {
-    // Get refresh token from cookies
+    // Get refresh token from cookies (accessToken is not needed here)
     const { refreshToken } = req.cookies;
+    if (!refreshToken) {
+      throw new ApiError(401, 'Refresh token not found in cookies');
+    }
 
     // Generate new auth tokens
     const tokens = await authService.refreshTokens(refreshToken);
 
-    // Set the new refresh token in a cookie
-    res.cookie('refreshToken', tokens.refreshToken, COOKIE_OPTIONS);
+    // Set the new tokens in cookies
+    res.cookie('refreshToken', tokens.refreshToken, REFRESH_COOKIE_OPTIONS);
+    res.cookie('accessToken', tokens.accessToken, ACCESS_COOKIE_OPTIONS);
 
-    // Return new access token
+    // Return new tokens
     res.status(200).json({
       status: 'success',
       data: {
-        accessToken: tokens.accessToken,
+        tokens,
       },
     });
   }
