@@ -51,7 +51,11 @@ describe('Auth Middleware', () => {
       // Use res as any and next as any to bypass strict type checks
       await authenticate(req as Request, res as any, next as any);
       expect(next).toHaveBeenCalledWith(expect.any(ApiError));
-      checkApiError(next.mock.calls[0][0], 401, 'Authentication required');
+      checkApiError(
+        next.mock.calls[0][0],
+        401,
+        'Authentication required, token missing'
+      );
     });
 
     it('should call next with error if token is missing', async () => {
@@ -61,7 +65,7 @@ describe('Auth Middleware', () => {
       checkApiError(
         next.mock.calls[0][0],
         401,
-        'Authentication token not provided'
+        'Authentication required, token missing'
       );
     });
 
